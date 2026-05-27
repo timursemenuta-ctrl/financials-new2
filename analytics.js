@@ -114,3 +114,41 @@ export function averageDailyExpense(state, days = 30) {
   const total = expenseByCategory(state, days).reduce((sum, item) => sum + item.value, 0);
   return total / days;
 }
+
+export function periodStats(state, days = 30) {
+  const since = Date.now() - days * 86400000;
+  const prevSince = since - days * 86400000;
+
+  const currentIncome = state.transactions
+    .filter((tx) => tx.type === "income" && new Date(tx.date).getTime() >= since)
+    .reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
+
+  const currentExpense = state.transactions
+    .filter((tx) => tx.type === "expense" && new Date(tx.date).getTime() >= since)
+    .reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
+
+  const prevIncome = state.transactions
+    .filter((tx) => tx.type === "income" && new Date(tx.date).getTime() >= prevSince && new Date(tx.date).getTime() < since)
+    .reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
+
+  const prevExpense = state.transactions
+    .filter((tx) => tx.type === "expense" && new Date(tx.date).getTime() >= prevSince && new Date(tx.date).getTime() < since)
+    .reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
+
+  const savings = currentIncome - currentExpense;
+  const savingsRate = currentIncome ? (savings / currentIncome) * 100 : 0;
+
+  const incomeChange = prevIncome ? ((currentIncome - prevIncome) / prevIncome) * 100 : 0;
+  const expenseChange = prevExpense ? ((currentExpense - prevExpense) / prevExpense) * 100 : 0;
+  const savingsChange = (prevIncome - prevExpense) ? ((savings - (prevIncome - prevExpense)) / Math.abs(prevIncome - prevExpense)) * 100 : 0;
+
+  return {
+    income: currentIncome,
+    expense: currentExpense,
+    savings,
+    savingsRate,
+    incomeChange,
+    expenseChange,
+    savingsChange
+  };
+}

@@ -1,5 +1,5 @@
 import { convert } from "./api.js";
-import { activityHeatmap, averageDailyExpense, capitalSeries, cryptoValue, dailyFlow, expenseByCategory, monthlyStats, walletTotals } from "./analytics.js";
+import { activityHeatmap, averageDailyExpense, capitalSeries, cryptoValue, dailyFlow, expenseByCategory, monthlyStats, periodStats, walletTotals } from "./analytics.js";
 import { clamp, dateLabel, daysBetween, isoDate, money, number, percent } from "./format.js";
 
 export function icon(name, className = "") {
@@ -145,6 +145,11 @@ export function analyticsView(state) {
   const categories = expenseByCategory(state, state.filters.analyticsDays, state.filters.analyticsMode);
   const flow = dailyFlow(state, 14);
   const months = monthlyStats(state);
+  const stats = periodStats(state, state.filters.analyticsDays);
+  const totals = walletTotals(state);
+
+  const totalCategories = categories.reduce((sum, cat) => sum + cat.value, 0);
+
   return `
     ${section("Фильтры", `<div class="segmented">
       ${["all:Вместе", "fiat:Фиат", "crypto:Крипта"].map((item) => {
@@ -152,20 +157,56 @@ export function analyticsView(state) {
         return `<button data-analytics-mode="${value}" class="${state.filters.analyticsMode === value ? "is-active" : ""}" type="button">${label}</button>`;
       }).join("")}
     </div><div class="range-row"><span>Период: ${state.filters.analyticsDays} дней</span><input type="range" min="7" max="90" step="1" value="${state.filters.analyticsDays}" id="daysRange" /></div>`)}
-    <section class="panel analytics-summary">
-      <div><span>Средний расход</span><strong>${money(averageDailyExpense(state, state.filters.analyticsDays), "USD")}</strong><small>в день</small></div>
-      <div><span>Cashflow</span><strong class="${flow.reduce((s, d) => s + d.cashflow, 0) >= 0 ? "positive" : "negative"}">${money(flow.reduce((s, d) => s + d.cashflow, 0), "USD")}</strong><small>14 дней</small></div>
+
+    <section class="panel metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Баланс</span>
+        <strong class="metric-value">${money(totals.totalUah, "UAH", true)}</strong>
+        <small class="metric-sub">${money(totals.totalUsd, "USD")}</small>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Доходы</span>
+        <strong class="metric-value positive">${money(stats.income, "UAH", true)}</strong>
+        <small class="metric-change ${stats.incomeChange >= 0 ? "positive" : "negative"}">
+          ${stats.incomeChange >= 0 ? "↑" : "↓"} ${Math.abs(stats.incomeChange).toFixed(1)}%
+        </small>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Расходы</span>
+        <strong class="metric-value negative">${money(stats.expense, "UAH", true)}</strong>
+        <small class="metric-change ${stats.expenseChange <= 0 ? "positive" : "negative"}">
+          ${stats.expenseChange >= 0 ? "↑" : "↓"} ${Math.abs(stats.expenseChange).toFixed(1)}%
+        </small>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Экономия</span>
+        <strong class="metric-value ${stats.savings >= 0 ? "positive" : "negative"}">${money(stats.savings, "UAH", true)}</strong>
+        <small class="metric-sub">${stats.savingsRate.toFixed(1)}% от доходов</small>
+      </div>
     </section>
-    ${chartPanel("Расходы по категориям", "categoryChart")}
+
+    ${section("Топ категорий расходов", `<div class="category-breakdown">${categories.slice(0, 5).map((item) => {
+      const percent = totalCategories ? (item.value / totalCategories) * 100 : 0;
+      return `
+        <div class="category-item">
+          <div class="category-info">
+            <span class="category-icon" style="background:${item.color}">${icon(item.icon || "circle")}</span>
+            <div>
+              <strong>${item.category}</strong>
+              <small>${money(convert(item.value, "USD", "UAH", state.rates), "UAH", true)}</small>
+            </div>
+          </div>
+          <div class="category-percent">
+            <span>${percent.toFixed(1)}%</span>
+            <div class="percent-bar"><span style="width:${percent}%; background:${item.color}"></span></div>
+          </div>
+        </div>
+      `;
+    }).join("")}</div>`)}
+
     ${chartPanel("Доходы и расходы по дням", "flowChart")}
     ${chartPanel("Изменение капитала", "capitalChart")}
     ${section("Активность", heatmap(activityHeatmap(state, 35)))}
-    ${section("Самые затратные категории", `<div class="rank-list">${categories.slice(0, 6).map((item, index) => `
-      <div><span>${index + 1}</span><strong>${item.category}</strong><b>${money(item.value, "USD")}</b></div>
-    `).join("")}</div>`)}
-    ${section("Статистика по месяцам", `<div class="rank-list">${months.map((item) => `
-      <div><span>${item.month}</span><strong>${money(item.income - item.expense, "USD")}</strong><b>${money(item.expense, "USD")}</b></div>
-    `).join("")}</div>`)}
   `;
 }
 
