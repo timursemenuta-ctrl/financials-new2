@@ -1,0 +1,21 @@
+{
+  "name": "FinPulse",
+  "short_name": "FinPulse",
+  "description": "Локальный личный финансовый учет: фиат, крипта, цели и аналитика.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#090b12",
+  "theme_color": "#090b12",
+  "icons": [
+    {
+      "src": "./assets/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "./assets/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

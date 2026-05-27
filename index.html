@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#090b12" />
+    <meta name="description" content="Локальный финтех-трекер для денег, целей и криптопортфеля" />
+    <title>FinPulse</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./assets/icon-192.svg" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="device-frame" aria-hidden="true">
+        <div class="brand-orbit"></div>
+        <p>FinPulse</p>
+        <span>Локальный капитал. Фиат, крипта и цели в одном ритме.</span>
+      </aside>
+
+      <main class="phone" id="app">
+        <section class="lock-screen is-visible" id="lockScreen">
+          <div class="lock-card">
+            <div class="app-mark">FP</div>
+            <h1>FinPulse</h1>
+            <p>Введите PIN, чтобы открыть личный финансовый центр.</p>
+            <div class="pin-dots" id="pinDots"></div>
+            <div class="pin-pad" id="pinPad"></div>
+            <button class="link-button" id="resetPinBtn" type="button">Сбросить PIN и демо-данные</button>
+          </div>
+        </section>
+
+        <section class="onboarding is-visible" id="onboarding">
+          <div class="onboarding-card">
+            <div class="app-mark">FP</div>
+            <span class="eyebrow">Локальный MVP</span>
+            <h1>Фиат, крипта, цели и аналитика без backend</h1>
+            <p>Данные сохраняются в IndexedDB и LocalStorage. API курсов кешируются, а демо-данные создаются при первом запуске.</p>
+            <label class="field">
+              <span>Создайте PIN</span>
+              <input id="pinSetup" inputmode="numeric" maxlength="6" placeholder="Например 1234" />
+            </label>
+            <button class="primary-button" id="startAppBtn" type="button">Начать</button>
+          </div>
+        </section>
+
+        <header class="topbar">
+          <div>
+            <span class="muted">Сегодня</span>
+            <strong id="todayLabel"></strong>
+          </div>
+          <div class="top-actions">
+            <button class="icon-button" id="themeToggle" aria-label="Переключить тему" type="button"><i data-lucide="moon"></i></button>
+            <button class="icon-button" id="backupBtn" aria-label="Экспорт JSON" type="button"><i data-lucide="download"></i></button>
+            <button class="icon-button" id="importBtn" aria-label="Импорт JSON" type="button"><i data-lucide="upload"></i></button>
+          </div>
+        </header>
+
+        <div class="view-stack" id="views"></div>
+
+        <button class="fab" id="fab" aria-label="Добавить операцию" type="button"><i data-lucide="plus"></i></button>
+
+        <nav class="bottom-nav" id="bottomNav" aria-label="Основная навигация">
+          <button data-route="home" class="is-active" type="button"><i data-lucide="layout-dashboard"></i><span>Главная</span></button>
+          <button data-route="wallets" type="button"><i data-lucide="wallet"></i><span>Кошельки</span></button>
+          <button data-route="exchange" type="button"><i data-lucide="repeat-2"></i><span>Обмен</span></button>
+          <button data-route="analytics" type="button"><i data-lucide="chart-no-axes-combined"></i><span>Аналитика</span></button>
+          <button data-route="crypto" type="button"><i data-lucide="bitcoin"></i><span>Крипта</span></button>
+        </nav>
+      </main>
+    </div>
+
+    <dialog class="modal" id="entityModal"></dialog>
+    <div class="toast-zone" id="toastZone"></div>
+    <input type="file" id="importInput" accept="application/json" hidden />
+  </body>
+</html>
