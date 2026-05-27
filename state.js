@@ -20,7 +20,7 @@ export const state = {
   goals: [],
   categories: [],
   settings: { theme: "dark", baseCurrency: "USD" },
-  filters: { query: "", analyticsMode: "all", analyticsDays: 30 }
+  filters: { query: "", analyticsMode: "all", analyticsDays: 30, balancePeriod: 30 }
 };
 
 export function subscribe(listener) {

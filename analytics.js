@@ -74,8 +74,8 @@ export function dailyFlow(state, days = 14) {
   const labels = Array.from({ length: days }, (_, i) => isoDate(Date.now() - (days - i - 1) * 86400000));
   return labels.map((date) => {
     const dayTx = state.transactions.filter((tx) => tx.date === date);
-    const income = dayTx.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "USD", state.rates), 0);
-    const expense = dayTx.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "USD", state.rates), 0);
+    const income = dayTx.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
+    const expense = dayTx.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
     return { date, income, expense, cashflow: income - expense };
   });
 }
@@ -103,11 +103,53 @@ export function activityHeatmap(state, days = 35) {
 }
 
 export function capitalSeries(state, days = 21) {
-  const current = walletTotals(state).totalUsd;
-  return Array.from({ length: days }, (_, i) => {
-    const drift = Math.sin(i / 2.5) * 120 + i * 22;
-    return { label: `${i + 1}`, value: current - (days - i) * 18 + drift };
-  });
+  const labels = Array.from({ length: days }, (_, i) => isoDate(Date.now() - (days - i - 1) * 86400000));
+  const totals = walletTotals(state);
+  let runningFiat = totals.fiatUah;
+  let runningCrypto = convert(totals.cryptoUsd, "USD", "UAH", state.rates);
+
+  // Идем от текущего момента назад и вычитаем транзакции
+  const series = labels.map((date) => {
+    const dayTx = state.transactions.filter((tx) => tx.date === date);
+    const fiatChange = dayTx
+      .filter((tx) => tx.category !== "Крипта")
+      .reduce((sum, tx) => {
+        const amount = convert(tx.amount, tx.currency, "UAH", state.rates);
+        if (tx.type === "income") return sum + amount;
+        if (tx.type === "expense") return sum - amount;
+        return sum;
+      }, 0);
+
+    const cryptoChange = dayTx
+      .filter((tx) => tx.category === "Крипта")
+      .reduce((sum, tx) => {
+        const amount = convert(tx.amount, tx.currency, "UAH", state.rates);
+        if (tx.type === "income") return sum + amount;
+        if (tx.type === "expense") return sum - amount;
+        return sum;
+      }, 0);
+
+    return { date, fiat: runningFiat, crypto: runningCrypto, fiatChange, cryptoChange };
+  }).reverse();
+
+  // Пересчитываем баланс назад во времени
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (i === series.length - 1) {
+      series[i].fiat = runningFiat;
+      series[i].crypto = runningCrypto;
+    } else {
+      series[i].fiat = series[i + 1].fiat - series[i + 1].fiatChange;
+      series[i].crypto = series[i + 1].crypto - series[i + 1].cryptoChange;
+    }
+  }
+
+  return series.reverse().map((item) => ({
+    label: item.date.slice(5),
+    date: item.date,
+    value: item.fiat + item.crypto,
+    fiat: item.fiat,
+    crypto: item.crypto
+  }));
 }
 
 export function averageDailyExpense(state, days = 30) {
@@ -150,5 +192,59 @@ export function periodStats(state, days = 30) {
     incomeChange,
     expenseChange,
     savingsChange
+  };
+}
+
+export function insightStats(state, days = 30) {
+  const since = Date.now() - days * 86400000;
+  const transactions = state.transactions.filter((tx) => new Date(tx.date).getTime() >= since);
+
+  // Самая дорогая покупка
+  const biggestExpense = transactions
+    .filter((tx) => tx.type === "expense")
+    .map((tx) => ({ ...tx, amountUah: convert(tx.amount, tx.currency, "UAH", state.rates) }))
+    .sort((a, b) => b.amountUah - a.amountUah)[0];
+
+  // Средний чек
+  const expenses = transactions.filter((tx) => tx.type === "expense");
+  const avgCheck = expenses.length ? expenses.reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0) / expenses.length : 0;
+
+  // Streak - дни подряд с тратами
+  let currentStreak = 0;
+  let maxStreak = 0;
+  const today = isoDate();
+  for (let i = 0; i < 90; i++) {
+    const date = isoDate(Date.now() - i * 86400000);
+    const hasExpense = state.transactions.some((tx) => tx.date === date && tx.type === "expense");
+    if (hasExpense) {
+      currentStreak++;
+      maxStreak = Math.max(maxStreak, currentStreak);
+    } else {
+      currentStreak = 0;
+    }
+  }
+
+  // Самая частая категория
+  const categoryCount = new Map();
+  expenses.forEach((tx) => {
+    categoryCount.set(tx.category, (categoryCount.get(tx.category) || 0) + 1);
+  });
+  const topCategory = [...categoryCount.entries()].sort((a, b) => b[1] - a[1])[0];
+
+  // Прогноз на конец месяца
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const currentDay = new Date().getDate();
+  const monthExpenses = state.transactions
+    .filter((tx) => tx.type === "expense" && tx.date.startsWith(isoDate().slice(0, 7)))
+    .reduce((sum, tx) => sum + convert(tx.amount, tx.currency, "UAH", state.rates), 0);
+  const dailyAvg = monthExpenses / currentDay;
+  const forecast = dailyAvg * daysInMonth;
+
+  return {
+    biggestExpense: biggestExpense ? { category: biggestExpense.category, amount: biggestExpense.amountUah, date: biggestExpense.date } : null,
+    avgCheck,
+    maxStreak,
+    topCategory: topCategory ? { name: topCategory[0], count: topCategory[1] } : null,
+    forecast
   };
 }

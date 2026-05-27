@@ -177,6 +177,11 @@ function bindGlobalEvents() {
       state.filters.analyticsMode = mode;
       render();
     }
+    const period = event.target.closest("[data-balance-period]")?.dataset.balancePeriod;
+    if (period) {
+      state.filters.balancePeriod = Number(period);
+      render();
+    }
   });
 }
 
@@ -344,11 +349,83 @@ function renderCharts() {
 
   const capitalCanvas = document.querySelector("#capitalChart");
   if (capitalCanvas) {
-    const rows = capitalSeries(state, 21);
+    const rows = capitalSeries(state, state.filters.balancePeriod || 30);
     charts.set("capital", new Chart(capitalCanvas, {
       type: "line",
-      data: { labels: rows.map((r) => r.label), datasets: [{ label: "Капитал", data: rows.map((r) => r.value), borderColor: "#7c5cff", backgroundColor: "rgba(124,92,255,.18)", fill: true, tension: 0.42, pointRadius: 0 }] },
-      options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } }
+      data: {
+        labels: rows.map((r) => r.label),
+        datasets: [
+          {
+            label: "Фиат",
+            data: rows.map((r) => r.fiat),
+            borderColor: "#68fbd0",
+            backgroundColor: "rgba(104,251,208,.18)",
+            fill: true,
+            tension: 0.42,
+            pointRadius: 3,
+            pointHoverRadius: 6
+          },
+          {
+            label: "Крипта",
+            data: rows.map((r) => r.crypto),
+            borderColor: "#ffcc66",
+            backgroundColor: "rgba(255,204,102,.18)",
+            fill: true,
+            tension: 0.42,
+            pointRadius: 3,
+            pointHoverRadius: 6
+          },
+          {
+            label: "Общий баланс",
+            data: rows.map((r) => r.value),
+            borderColor: "#7c5cff",
+            backgroundColor: "rgba(124,92,255,.08)",
+            fill: false,
+            tension: 0.42,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            borderWidth: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        scales: {
+          x: {
+            grid: { color: "rgba(255,255,255,.08)" },
+            ticks: { maxRotation: 0 }
+          },
+          y: {
+            grid: { color: "rgba(255,255,255,.08)" },
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString('ru-RU') + ' ₴';
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { boxWidth: 12, usePointStyle: true, padding: 12 }
+          },
+          tooltip: {
+            callbacks: {
+              title: function(context) {
+                return rows[context[0].dataIndex].date;
+              },
+              label: function(context) {
+                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('ru-RU') + ' ₴';
+              }
+            }
+          }
+        }
+      }
     }));
   }
 

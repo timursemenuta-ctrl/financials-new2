@@ -1,5 +1,5 @@
 import { convert } from "./api.js";
-import { activityHeatmap, averageDailyExpense, capitalSeries, cryptoValue, dailyFlow, expenseByCategory, monthlyStats, periodStats, walletTotals } from "./analytics.js";
+import { activityHeatmap, averageDailyExpense, capitalSeries, cryptoValue, dailyFlow, expenseByCategory, insightStats, monthlyStats, periodStats, walletTotals } from "./analytics.js";
 import { clamp, dateLabel, daysBetween, isoDate, money, number, percent } from "./format.js";
 
 export function icon(name, className = "") {
@@ -147,6 +147,7 @@ export function analyticsView(state) {
   const months = monthlyStats(state);
   const stats = periodStats(state, state.filters.analyticsDays);
   const totals = walletTotals(state);
+  const insights = insightStats(state, state.filters.analyticsDays);
 
   const totalCategories = categories.reduce((sum, cat) => sum + cat.value, 0);
 
@@ -185,6 +186,39 @@ export function analyticsView(state) {
       </div>
     </section>
 
+    ${section("Инсайты", `<div class="insights-grid">
+      <div class="insight-card">
+        <span class="insight-icon">💰</span>
+        <div>
+          <strong>Средний чек</strong>
+          <p>${money(insights.avgCheck, "UAH", true)}</p>
+        </div>
+      </div>
+      ${insights.biggestExpense ? `
+      <div class="insight-card">
+        <span class="insight-icon">🔥</span>
+        <div>
+          <strong>Самая дорогая покупка</strong>
+          <p>${insights.biggestExpense.category} · ${money(insights.biggestExpense.amount, "UAH", true)}</p>
+        </div>
+      </div>` : ''}
+      ${insights.topCategory ? `
+      <div class="insight-card">
+        <span class="insight-icon">📊</span>
+        <div>
+          <strong>Частая категория</strong>
+          <p>${insights.topCategory.name} · ${insights.topCategory.count} раз</p>
+        </div>
+      </div>` : ''}
+      <div class="insight-card">
+        <span class="insight-icon">📈</span>
+        <div>
+          <strong>Прогноз на месяц</strong>
+          <p>${money(insights.forecast, "UAH", true)}</p>
+        </div>
+      </div>
+    </div>`)}
+
     ${section("Топ категорий расходов", `<div class="category-breakdown">${categories.slice(0, 5).map((item) => {
       const percent = totalCategories ? (item.value / totalCategories) * 100 : 0;
       return `
@@ -205,7 +239,15 @@ export function analyticsView(state) {
     }).join("")}</div>`)}
 
     ${chartPanel("Доходы и расходы по дням", "flowChart")}
-    ${chartPanel("Изменение капитала", "capitalChart")}
+
+    ${section("Изменение баланса", `
+      <div class="period-selector">
+        ${[["7", "Неделя"], ["30", "Месяц"], ["90", "3 месяца"], ["365", "Год"]].map(([days, label]) =>
+          `<button data-balance-period="${days}" class="${state.filters.balancePeriod == days ? "is-active" : ""}" type="button">${label}</button>`
+        ).join("")}
+      </div>
+      <div class="chart-box"><canvas id="capitalChart"></canvas></div>
+    `)}
     ${section("Активность", heatmap(activityHeatmap(state, 35)))}
   `;
 }

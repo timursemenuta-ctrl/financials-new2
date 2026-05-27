@@ -1113,3 +1113,78 @@ select:focus {
   border-radius: 3px;
   transition: width 0.3s ease;
 }
+
+/* Period Selector */
+.period-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.period-selector button {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-selector button:hover {
+  background: var(--panel-strong);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.period-selector button.is-active {
+  background: var(--violet);
+  border-color: var(--violet);
+  color: white;
+}
+
+/* Insights Grid */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.insight-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.insight-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.insight-card > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.insight-card strong {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.insight-card p {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
